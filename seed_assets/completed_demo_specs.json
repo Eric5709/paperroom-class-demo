@@ -1,0 +1,549 @@
+[
+  {
+    "id": "demo-visual",
+    "marker": "VLOC-2022-DEMO-v1",
+    "title": "특징점이 부족한 실내환경에서의 Visual Localization 에 대한 연구",
+    "subtitle": "Vision-based Localization for Low-textured Indoor Environments · 2022 한국로봇종합학술대회 · 완료된 연구 · 작업 이력은 시연용 가상 기록",
+    "deadline": "2022-05-14",
+    "dates": [
+      "2022-04-08",
+      "2022-04-22",
+      "2022-05-10"
+    ],
+    "authors": [
+      "가상 연구자 A",
+      "가상 연구자 B",
+      "가상 연구자 C"
+    ],
+    "entries": [
+      {
+        "kind": "fig",
+        "title": "Fig. 1 · Visual Localization 전체 파이프라인",
+        "image": "visual_fig1.png",
+        "owner": "가상 연구자 A",
+        "desc": "NetVLAD를 이용한 전역 후보 검색과 SuperPoint·SuperGlue를 활용한 정밀 매칭의 전체 구성. 논문 Fig. 1.",
+        "history": [
+          "NetVLAD 검색-매칭 흐름 초안 등록",
+          "Fine searching 및 Match Ratio 평가 단계 검토",
+          "투고용 파이프라인 그림 최종 승인"
+        ],
+        "notes": [
+          "입력 Query Image와 Reference 이미지의 연결 구조",
+          "NetVLAD로 후보 이미지를 축소한 뒤 SuperPoint/Glue 연계",
+          "논문 Fig. 1에 수록된 최종 도식"
+        ],
+        "comment": "전체 파이프라인을 통해 후보 검색과 정밀 매칭의 역할이 잘 구분됩니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 2 · 실내 복도 데이터 수집 환경",
+        "image": "visual_fig2.png",
+        "owner": "가상 연구자 B",
+        "desc": "인하대학교 하이테크센터 6층 복도에서 수집된 서로 다른 위치의 이미지. 논문 Fig. 2.",
+        "history": [
+          "건물 복도 촬영 이미지 등록",
+          "특징점 부족 및 반복 구조 설명 점검",
+          "실험 환경 그림 검토 완료"
+        ],
+        "notes": [
+          "복도 구간 이미지 원본 반영",
+          "관찰 지점 간 유사성과 Low-texture 조건 표시",
+          "Fig. 2 최종본"
+        ],
+        "comment": "복도의 반복 패턴이 문제의식을 잘 보여 줍니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 3 · NetVLAD 사용 유무에 따른 위치 추정 비교",
+        "image": "visual_fig3.png",
+        "owner": "가상 연구자 C",
+        "desc": "NetVLAD + SuperPoint와 SuperPoint 단독 적용의 정성적 위치 추정 비교. 논문 Fig. 3.",
+        "history": [
+          "정성 결과 이미지와 매칭 선 등록",
+          "극단적인 Query에 대한 후보 검색 오류 설명 반영",
+          "최종 결과 시각화 승인"
+        ],
+        "notes": [
+          "원고의 검색 결과 비교 구도",
+          "후보 검색 오류가 후속 매칭에 전파될 수 있음",
+          "Fig. 3 최종본"
+        ],
+        "comment": "NetVLAD의 계산량 이점과 retrieval 오류의 위험을 함께 언급하도록 했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 4 · SIFT와 SuperPoint 위치 추정 비교",
+        "image": "visual_fig4.png",
+        "owner": "가상 연구자 A",
+        "desc": "특징점이 적은 실내 복도에서 SIFT와 SuperPoint 기반 Visual Localization 결과 비교. 논문 Fig. 4.",
+        "history": [
+          "SIFT/SuperPoint 비교 그래프 추가",
+          "직선 복도 구간의 localization 혼합 사례 검토",
+          "최종 비교 결과 승인"
+        ],
+        "notes": [
+          "두 방법의 위치 결과 플롯",
+          "SIFT의 혼합 현상과 SuperPoint의 상대적 안정성",
+          "Fig. 4 최종본"
+        ],
+        "comment": "SIFT 결과가 섞이는 구간을 본문에서 충분히 설명했는지 확인했습니다."
+      },
+      {
+        "kind": "table",
+        "title": "Table 1 · Global Searching Threshold별 오류율·시간",
+        "owner": "가상 연구자 B",
+        "desc": "NetVLAD 검색 개수에 따른 Error Ratio 및 쿼리당 시간(ms). 논문 Table 1의 실제 값.",
+        "columns": [
+          "Global Searching Threshold",
+          "Error Ratio ↓",
+          "Elapsed time per Query (ms) ↓"
+        ],
+        "rows": [
+          [
+            "5",
+            "0.286",
+            "1.71"
+          ],
+          [
+            "20",
+            "0.143",
+            "2.92"
+          ],
+          [
+            "No Retrieval",
+            "0.071",
+            "17.39"
+          ]
+        ],
+        "history": [
+          "Threshold 5 결과 등록",
+          "Threshold 20 결과 및 검색 비용 비교",
+          "No Retrieval 대조군 수치 확인·표 승인"
+        ],
+        "notes": [
+          "5개 후보 검색 결과 입력",
+          "20개 후보와 성능·시간 변화 확인",
+          "원문 Table 1의 3개 설정 전체 반영"
+        ],
+        "comment": "검색을 생략하면 오류율은 가장 낮지만 계산 시간이 크게 증가한다는 내용을 최종 검토했습니다."
+      }
+    ],
+    "tasks": [
+      "NetVLAD 전역 특징 추출 파이프라인 정리",
+      "복도 데이터셋 수집 위치 정리",
+      "SuperPoint·SuperGlue 정밀 매칭 검토",
+      "검색 Threshold별 Error Ratio 기록",
+      "SIFT와 SuperPoint 결과 비교",
+      "논문 Figure/Table 최종 승인"
+    ],
+    "source": "2022년 논문 PDF · Fig. 1~4 / Table 1"
+  },
+  {
+    "id": "demo-mars",
+    "marker": "MARSCALIB-2025-DEMO-v1",
+    "title": "MARSCalib: Multi-robot, Automatic, Robust, Spherical Target-based Extrinsic Calibration in Field and Extraterrestrial Environments",
+    "subtitle": "IROS 2025 논문 · 로봇 간 이동식 구형 타깃 기반 LiDAR–카메라 외부 파라미터 추정 · 완료된 연구 · 작업 이력은 시연용 가상 기록",
+    "deadline": "2025-10-25",
+    "dates": [
+      "2025-06-16",
+      "2025-08-04",
+      "2025-09-19"
+    ],
+    "authors": [
+      "가상 연구자 A",
+      "가상 연구자 B",
+      "가상 연구자 C"
+    ],
+    "entries": [
+      {
+        "kind": "fig",
+        "title": "Fig. 1 · 다중 로봇·구형 타깃 개념도",
+        "image": "mars_fig1.png",
+        "owner": "가상 연구자 A",
+        "desc": "센서 Blur/Debris 및 표적 Damage/Dirt 사례와 로봇 기반 외부 파라미터 추정 개념을 나타내는 Fig. 1.",
+        "history": [
+          "Fig. 1 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "센서 Blur/Debris 및 표적 Damage/Dirt 사례와 로봇 기반 외부 파라미터 추정 개념을 나타내는 Fig. 1.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 2 · Camera/LiDAR 추출 파이프라인",
+        "image": "mars_fig2.png",
+        "owner": "가상 연구자 B",
+        "desc": "SAM 기반 카메라 타원 검출과 LiDAR 구 중심 추출을 결합해 PnP로 외부 파라미터를 계산하는 Fig. 2.",
+        "history": [
+          "Fig. 2 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "SAM 기반 카메라 타원 검출과 LiDAR 구 중심 추출을 결합해 PnP로 외부 파라미터를 계산하는 Fig. 2.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 3 · 손상된 타깃의 타원 보정 과정",
+        "image": "mars_fig3.png",
+        "owner": "가상 연구자 C",
+        "desc": "Initial Ellipse Detection → Evaluation → Rectification 사례를 보여주는 Fig. 3.",
+        "history": [
+          "Fig. 3 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "Initial Ellipse Detection → Evaluation → Rectification 사례를 보여주는 Fig. 3.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 4 · 구형 타깃 투영 중심 보정",
+        "image": "mars_fig4.png",
+        "owner": "가상 연구자 A",
+        "desc": "이미지 중심이 타원 내부/외부인 경우의 투영 중심 보정 기하를 나타내는 Fig. 4.",
+        "history": [
+          "Fig. 4 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "이미지 중심이 타원 내부/외부인 경우의 투영 중심 보정 기하를 나타내는 Fig. 4.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 5 · 잡음 클러스터 제거와 대표점 선택",
+        "image": "mars_fig5.png",
+        "owner": "가상 연구자 B",
+        "desc": "누적 LiDAR 점군에서 분산이 큰 클러스터를 제외하고 대표점을 추출하는 Fig. 5.",
+        "history": [
+          "Fig. 5 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "누적 LiDAR 점군에서 분산이 큰 클러스터를 제외하고 대표점을 추출하는 Fig. 5.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 6 · 야외 실험 환경 및 센서 설정",
+        "image": "mars_fig6.png",
+        "owner": "가상 연구자 C",
+        "desc": "행성 탐사 모사 환경·건설 현장·3종 LiDAR/3종 카메라 배치. 논문 Fig. 6.",
+        "history": [
+          "Fig. 6 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "행성 탐사 모사 환경·건설 현장·3종 LiDAR/3종 카메라 배치. 논문 Fig. 6.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 7 · 타깃 오염 강도별 시편",
+        "image": "mars_fig7.png",
+        "owner": "가상 연구자 A",
+        "desc": "AprilTag, CopperTag, 구형 타깃의 Easy/Medium/Extreme 오염 사례. 논문 Fig. 7.",
+        "history": [
+          "Fig. 7 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "AprilTag, CopperTag, 구형 타깃의 Easy/Medium/Extreme 오염 사례. 논문 Fig. 7.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 8 · 렌즈 오염 상황의 검출 성능",
+        "image": "mars_fig8.png",
+        "owner": "가상 연구자 B",
+        "desc": "Blur와 Mud 조건에서 CopperTag와 구형 타깃 검출 결과를 비교한 Fig. 8.",
+        "history": [
+          "Fig. 8 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "Blur와 Mud 조건에서 CopperTag와 구형 타깃 검출 결과를 비교한 Fig. 8.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "fig",
+        "title": "Fig. 9 · 오염·손상 구형 타깃에서의 타원 검출",
+        "image": "mars_fig9.png",
+        "owner": "가상 연구자 C",
+        "desc": "오염·부분 절단·스크래치가 있는 타깃에 대한 마스크 및 타원 추출 결과 비교. 논문 Fig. 9.",
+        "history": [
+          "Fig. 9 실험 이미지 초안 등록",
+          "방법 설명 및 시각화 검토",
+          "논문 최종 Figure 버전 승인"
+        ],
+        "notes": [
+          "원고에 포함된 이미지에서 작업 시작",
+          "오염·부분 절단·스크래치가 있는 타깃에 대한 마스크 및 타원 추출 결과 비교. 논문 Fig. 9.",
+          "원본 PDF 그림과 최종 버전 대조"
+        ],
+        "comment": "원고 캡션과 이미지 순서가 일치함을 확인했습니다."
+      },
+      {
+        "kind": "table",
+        "title": "Table I · 렌즈 오염에 따른 타깃 검출 성공 횟수",
+        "owner": "가상 연구자 A",
+        "desc": "원고 Table I에서 Sensor Contamination: Blur, Mud 조건만 발췌(전체 6개 위치에서 검출 성공 횟수).",
+        "columns": [
+          "렌즈 조건",
+          "AprilTag (성공/6)",
+          "CopperTag (성공/6)",
+          "Sphere (성공/6)"
+        ],
+        "rows": [
+          [
+            "Blur",
+            "1/6",
+            "4/6",
+            "6/6"
+          ],
+          [
+            "Mud",
+            "0/6",
+            "3/6",
+            "6/6"
+          ]
+        ],
+        "history": [
+          "Blur 조건 검출 결과 입력",
+          "Mud 조건 검출 성공 횟수 추가",
+          "원본 Table I와 대조 후 최종 승인"
+        ],
+        "notes": [
+          "Blur 데이터 우선 기록",
+          "Mud 데이터 기록 및 비교",
+          "센서 오염 부분만 발췌한 최종 표"
+        ],
+        "comment": "원문에서는 타깃 자체의 오염과 관측 각도별 결과도 별도로 다룹니다."
+      },
+      {
+        "kind": "table",
+        "title": "Table II · 3종 LiDAR × 3종 카메라 정량 결과",
+        "owner": "가상 연구자 B",
+        "desc": "원고 Table II의 Ours 행만 발췌하여 9개 조합의 translation, rotation, reprojection error를 정리.",
+        "columns": [
+          "LiDAR",
+          "Camera",
+          "Translation (m) ↓",
+          "Rotation (°) ↓",
+          "Reprojection (pixel) ↓"
+        ],
+        "rows": [
+          [
+            "Ouster OS1-32",
+            "CAM1",
+            "0.039",
+            "0.378",
+            "2.142"
+          ],
+          [
+            "Ouster OS1-32",
+            "CAM2",
+            "0.018",
+            "0.157",
+            "1.873"
+          ],
+          [
+            "Ouster OS1-32",
+            "CAM3",
+            "0.028",
+            "0.587",
+            "0.994"
+          ],
+          [
+            "SOSLAB ML-X 120",
+            "CAM1",
+            "0.016",
+            "0.492",
+            "2.142"
+          ],
+          [
+            "SOSLAB ML-X 120",
+            "CAM2",
+            "0.026",
+            "0.450",
+            "1.792"
+          ],
+          [
+            "SOSLAB ML-X 120",
+            "CAM3",
+            "0.010",
+            "0.417",
+            "1.258"
+          ],
+          [
+            "Livox MID-360",
+            "CAM1",
+            "0.030",
+            "0.356",
+            "1.556"
+          ],
+          [
+            "Livox MID-360",
+            "CAM2",
+            "0.018",
+            "0.157",
+            "1.644"
+          ],
+          [
+            "Livox MID-360",
+            "CAM3",
+            "0.028",
+            "0.587",
+            "1.472"
+          ]
+        ],
+        "history": [
+          "Ouster OS1-32 결과 3개 정리",
+          "SOSLAB ML-X 120 결과 3개 추가",
+          "Livox MID-360 포함 전체 9개 조합 최종 승인"
+        ],
+        "notes": [
+          "OS1-32 / 3 camera 조합",
+          "SOSLAB 3 camera 조합",
+          "원본 Table II의 제안 방법(Ours)만 최종 발췌"
+        ],
+        "comment": "각 조합의 동일 카메라별 측정치를 원문 Table II와 교차 확인했습니다."
+      },
+      {
+        "kind": "table",
+        "title": "Table III · 손상·오염 타깃의 외부 파라미터 결과",
+        "owner": "가상 연구자 C",
+        "desc": "원고 Table III의 손상 A/B/C 및 평균에 대한 Ours와 [17]*의 translation/rotation error.",
+        "columns": [
+          "타깃 상태",
+          "센서 조합",
+          "Ours Trans (m) ↓",
+          "Ours Rot (°) ↓",
+          "[17]* Trans (m) ↓",
+          "[17]* Rot (°) ↓"
+        ],
+        "rows": [
+          [
+            "A (오염)",
+            "CAM2-OS",
+            "0.0214",
+            "0.4802",
+            "0.0366",
+            "0.6728"
+          ],
+          [
+            "B (일부 절단)",
+            "CAM1-OS",
+            "0.0308",
+            "1.2275",
+            "0.0402",
+            "1.5386"
+          ],
+          [
+            "B (일부 절단)",
+            "CAM1-SOS",
+            "0.0191",
+            "1.2793",
+            "0.1027",
+            "1.5424"
+          ],
+          [
+            "B (일부 절단)",
+            "CAM1-MID",
+            "0.0144",
+            "1.4118",
+            "0.0298",
+            "1.9757"
+          ],
+          [
+            "C (스크래치)",
+            "CAM1-OS",
+            "0.0647",
+            "1.6923",
+            "0.0681",
+            "1.3750"
+          ],
+          [
+            "C (스크래치)",
+            "CAM1-SOS",
+            "0.0589",
+            "2.8878",
+            "0.4689",
+            "5.3793"
+          ],
+          [
+            "C (스크래치)",
+            "CAM1-MID",
+            "0.0063",
+            "1.2548",
+            "0.0536",
+            "1.8000"
+          ],
+          [
+            "평균",
+            "전체",
+            "0.0308",
+            "1.4620",
+            "0.1143",
+            "2.0405"
+          ]
+        ],
+        "history": [
+          "오염 A와 손상 B 결과 수집",
+          "손상 C 결과 및 비교 방법 추가",
+          "평균 오차 계산값 원고 대조·최종 승인"
+        ],
+        "notes": [
+          "A/B 샘플 수치 기록",
+          "C 케이스 포함",
+          "원본 Table III 전체 수치 반영"
+        ],
+        "comment": "C-CAM1-OS에서 회전 오차는 비교 방법이 더 낮다는 점까지 확인해 기술했습니다."
+      }
+    ],
+    "tasks": [
+      "구형 타깃 기반 다중 로봇 시나리오 정의",
+      "SAM·타원 중심 추출 시각화 정리",
+      "LiDAR 대표점 클러스터 가중합 정리",
+      "3종 LiDAR×3종 카메라 실험 정리",
+      "Blur/Mud 및 손상 구체 실험 비교",
+      "Table I–III 결과 대조 후 승인",
+      "Figure 1–9 이미지·캡션 최종 승인"
+    ],
+    "source": "MARSCalib_IROS2025.pdf · Fig. 1~9 / Table I~III"
+  }
+]

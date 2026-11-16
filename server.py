@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PaperRoom v2 — dependency-free collaborative paper workspace.
+"""PaperRoom v3.4 — collaborative paper workspace.
 Run: python3 server.py  (Python >=3.10). Set PORT, BASE_URL, SMTP_* env vars as needed.
 """
 import base64, csv, hashlib, io, json, mimetypes, os, re, secrets, smtplib, sqlite3, threading
@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urlparse, parse_qs, quote, unquote
 from contextlib import contextmanager
 
 ROOT=Path(__file__).resolve().parent
@@ -85,109 +85,258 @@ def ts(day,hour,minute=0):
     # Demo only: illustrative, not real team activity.
     return f'2026-11-{day:02d}T{hour:02d}:{minute:02d}:00+09:00'
 
+DEMO_MARKER='FULL-TITLE-AND-THREE-PROJECTS-2026-11-v1'
+
 def seed_demo(c):
+    # All scientific values/images originate from the uploaded OLIVE PDF.
+    # Simulated collaborators, task dates, revision notes, and states are DEMO-ONLY.
     c.execute('INSERT INTO projects(id,title,subtitle,deadline,created,is_demo) VALUES (?,?,?,?,?,1)',
-              ('demo','OLIVE — 논문 작성 협업 공간',
-               '시연용 데이터 · LiDAR–카메라 정렬 검사 · 가상 공동작업 예시',
-               '2027-01-15',ts(9,9)))
-    entries=[
-      dict(kind='fig',label='그림 1',title='객체 수준 정렬 검사 파이프라인',
-           desc='정렬 평가를 객체별로 수행하고, 객체 판정을 통합해 프레임 수준 결과를 산출합니다.',owner='연구자 A',status='review',asset='pipeline.png',
-           updates=[
-              (9,10,'초기 블록 다이어그램 생성','1차 파이프라인: 입력 센서, 객체 추출, VLM'),
-              (11,15,'Unknown 객체 제외 단계 추가','Unknown 객체 제외 및 최소 객체 수 조건 반영'),
-              (15,11,'다이어그램 레이블과 화살표 수정','검토 요청: 본문 용어와 그림 명칭 일치 확인')]),
-      dict(kind='table',label='표 1',title='환경별 균형 정확도 비교',
-           desc='미학습 환경에서 데이터셋별 균형 정확도(%)를 정리하고 결과를 검증합니다.',owner='연구자 B',status='in_progress',
-           values=[
-              {'columns':['방법','KITTI ↑','Waymo ↑','DiTer++ ↑','Pohang ↑'],'rows':[['Mean','85.49','—','—','—'],['OLIVE','96.98','87.25','—','—']]},
-              {'columns':['방법','KITTI ↑','Waymo ↑','DiTer++ ↑','Pohang ↑'],'rows':[['Mean','85.49','—','—','—'],['OLIVE','96.98','87.25','76.18','88.51']]},
-              {'columns':['방법','KITTI ↑','Waymo ↑','DiTer++ ↑','Pohang ↑'],'rows':[['Mean','85.49','—','—','—'],['OLIVE','96.98','87.25','76.18','88.51']], 'note':'수치 검증 후 표기법 통일 예정'}],
-           updates=[(9,13,'KITTI/Waymo 결과 임시 등록','2개 환경 결과 초안 입력'),(12,11,'DiTer++/Pohang 수치 추가','4개 평가 환경으로 확대'),(16,9,'열 이름과 지표 표기 정리','균형 정확도/상향 지표 형식 통일')]),
-      dict(kind='fig',label='그림 2',title='환경별 성능 요약',
-           desc='환경별 평균 성능을 직관적으로 보여주는 도표를 구성합니다.',owner='연구자 C',status='changes',asset='domains.png',
-           updates=[(10,10,'환경별 그래프 초안','KITTI/WOD/DiTer++/Pohang 예시'),(13,14,'팔레트 조정','환경별 명확한 컬러 구분'),(16,10,'범례 및 축 위치 수정 요청','요소 간 여백과 폰트 크기 조절')]),
-      dict(kind='table',label='표 2',title='프레임 수준 집계 방식 비교',
-           desc='평균 집계, MIL, OLIVE의 KITTI 균형 정확도를 비교하고 안정성을 분석합니다.',owner='연구자 A',status='approved',
-           values=[
-              {'columns':['집계 방식','KITTI BA ↑'],'rows':[['Mean','85.49'],['MIL','97.32'],['OLIVE','96.98']]},
-              {'columns':['집계 방식','KITTI BA ↑','표준편차 ↓'],'rows':[['Mean','85.49','—'],['MIL','97.32','—'],['OLIVE','96.98','0.95']]},
-              {'columns':['집계 방식','KITTI BA ↑','표준편차 ↓'],'rows':[['Mean','85.49','—'],['MIL','97.32','—'],['OLIVE','96.98','0.95']],'note':'논문 제출 버전으로 승인'}],
-           updates=[(9,16,'집계 방식별 BA 초안 입력','초기 결과값 등록'),(13,9,'표준편차 열 추가','안정성 검토'),(15,17,'표 검토 후 승인','표 2 승인본 확정')]),
-      dict(kind='fig',label='그림 3',title='객체별 판정 예시 (Pass / Fail / Unknown)',
-           desc='깊이 불연속과 경계선의 일치/불일치 및 애매한 객체를 예시로 정리합니다.',owner='연구자 B',status='in_progress',asset='object_cases.png',
-           updates=[(11,10,'통과/실패 사례 선정','객체 크롭 자료 선정'),(14,17,'판단 불가 예시 추가','점이 희소한 객체 및 울타리 사례 반영')]),
-      dict(kind='table',label='표 3',title='LiDAR 채널 샘플링 강건성',
-           desc='채널 샘플링 변화에 대한 성능 유지 여부를 검증합니다.',owner='연구자 C',status='review',
-           values=[{'columns':['방법','균형 정확도 ↑'],'rows':[['LCCNet*','50.00'],['Cal/NoCal','50.00'],['OLIVE','96.13']]},
-                   {'columns':['방법','균형 정확도 ↑','비고'],'rows':[['LCCNet*','50.00','짝수 채널'],['Cal/NoCal','50.00','짝수 채널'],['OLIVE','96.13','짝수 채널']]}],
-           updates=[(12,14,'초기 강건성 결과 정리','짝수 채널 실험으로 세 모델 비교'),(16,13,'실험 조건 주석 추가','조건 캡션 검토 요청')])
+              ('demo','Cross-Environment LiDAR–Camera Misalignment Detection via Object-Level VLM Assessment',
+               '논문 실제 수치 및 Fig. 1~6 · 작성 과정과 리뷰 이력은 수업 시연용 가상 기록 · '+DEMO_MARKER,
+               '2026-12-05',ts(9,9)))
+
+    # Actual paper Table I: object-level VLM precision/recall, %.
+    vlm_v1={'columns':['판정 클래스','정밀도 (%) ↑','재현율 (%) ↑'],
+            'rows':[['Pass','97.51','59.97'],['Fail','81.12','73.22']]}
+    vlm_v2={'columns':vlm_v1['columns'],'rows':vlm_v1['rows']+[['Unknown','85.50','96.02']]}
+    vlm_v3={**vlm_v2,'note':'출처: 논문 Table I. 수치는 변경하지 않음. Unknown은 불충분/모호한 객체 증거를 의미합니다.'}
+
+    # Actual paper Table II: evaluation environment details and frame counts.
+    ds_columns=['데이터셋','환경','대상 객체','Pass 프레임','Fail 프레임','난이도']
+    ds_rows=[
+       ['KITTI','도심','Car, Tree, Cyclist','160','240','★'],
+       ['WOD','도심','Car, Tree','30','45','★'],
+       ['DiTer++','잔디/농촌','Vegetation','95','143','★★'],
+       ['Pohang','해상','Vessel, Buoy','30','45','★★★'],
     ]
-    assets={}
+    ds_versions=[{'columns':ds_columns,'rows':ds_rows[:2]},
+                 {'columns':ds_columns,'rows':ds_rows[:3]},
+                 {'columns':ds_columns,'rows':ds_rows,
+                  'note':'출처: 논문 Table II. 난이도 별은 객체 출현 빈도가 적을수록 많아집니다.'}]
+
+    # Actual paper Table III: all five reported metrics, %.
+    results_columns=['데이터셋','방법','정확도 (%) ↑','Pass 정밀도 ↑','Pass 재현율 ↑','Fail 정밀도 ↑','Fail 재현율 ↑']
+    results_rows=[
+       ['KITTI','LCCNet*','97.50','94.12','100.00','100.00','95.83'],
+       ['KITTI','Cal/NoCal','99.25','98.16','100.00','100.00','98.75'],
+       ['KITTI','ST-Calib','78.75','65.96','96.88','96.97','66.67'],
+       ['KITTI','Ours','89.50','82.42','93.75','95.41','86.67'],
+       ['WOD','LCCNet*','60.00','0.00','0.00','60.00','100.00'],
+       ['WOD','Cal/NoCal','60.00','0.00','0.00','60.00','100.00'],
+       ['WOD','ST-Calib','86.67','75.00','100.00','100.00','77.78'],
+       ['WOD','Ours','76.00','100.00','40.00','71.43','100.00'],
+       ['DiTer++','LCCNet*','62.32','0.00','0.00','62.32','100.00'],
+       ['DiTer++','Cal/NoCal','62.32','0.00','0.00','62.32','100.00'],
+       ['DiTer++','ST-Calib','56.30','34.48','10.53','59.33','86.71'],
+       ['DiTer++','Ours','74.79','71.60','61.05','76.43','83.92'],
+       ['Pohang','LCCNet*','60.00','0.00','0.00','60.00','100.00'],
+       ['Pohang','Cal/NoCal','60.00','0.00','0.00','60.00','100.00'],
+       ['Pohang','ST-Calib','57.33','33.33','6.67','59.42','91.11'],
+       ['Pohang','Ours','82.67','81.48','73.33','83.33','88.89']
+    ]
+    results_versions=[
+       {'columns':results_columns,'rows':results_rows[:4]},
+       {'columns':results_columns,'rows':results_rows[:8]},
+       {'columns':results_columns,'rows':results_rows[:12]},
+       {'columns':results_columns,'rows':results_rows,
+        'note':'출처: 논문 Table III. LCCNet*는 오정렬 분류를 위해 수정한 비교 방법입니다.'}
+    ]
+
+    entries=[
+      dict(kind='fig',title='Fig. 1 · 4개 환경의 성능 레이더 비교',
+           desc='도심 두 환경, 잔디, 해상 환경의 Accuracy 및 Pass/Fail 정밀도·재현율 레이더 차트. 논문 Fig. 1 원본.',
+           owner='가상 연구자 A',status='review',asset='fig1_radar.png',updates=[
+              (9,10,0,'Fig. 1 원본 초안 등록','4개 환경 레이더 차트를 결과물에 추가'),
+              (11,14,15,'5개 평가 축 설명 추가','정확도 / Pass 정밀도·재현율 / Fail 정밀도·재현율 점검'),
+              (16,9,30,'검토 요청: 범례와 환경별 배치','리뷰 코멘트를 기다리는 상태')]),
+      dict(kind='fig',title='Fig. 2 · 객체 수준 오정렬 탐지 파이프라인',
+           desc='Grounding DINO, SAM, Canny 및 LiDAR 투영 → LoRA VLM → 프레임 수준 Soft Voting 앙상블. 논문 Fig. 2.',
+           owner='가상 연구자 B',status='approved',asset='fig2_pipeline.png',updates=[
+              (9,11,20,'파이프라인 원본 등록','객체 검출·마스크·투영·VLM 평가의 전체 흐름'),
+              (12,13,0,'앙상블 분류 입력/출력 검토','Pass/Fail/Unknown 객체 판정 및 Feature Aggregation 표시'),
+              (15,17,0,'최종 검토 완료','제출용 그림 버전 확정')]),
+      dict(kind='fig',title='Fig. 3 · VLM 정렬 평가 프롬프트',
+           desc='깊이 색상 및 흰색 객체 경계를 비교해 Pass, Fail, Unknown을 판단하는 프롬프트. 논문 Fig. 3.',
+           owner='가상 연구자 C',status='in_progress',asset='fig3_prompt.png',updates=[
+              (10,10,0,'평가 프롬프트 이미지 등록','Task / Context / Classification Criteria 3부분 정리'),
+              (13,14,20,'Unknown 정의 확인','객체 안의 증거가 부족하거나 경계 밖으로 색이 이어지는 경우를 강조')]),
+      dict(kind='fig',title='Fig. 4 · 객체별 Pass/Fail/Unknown 사례',
+           desc='정상·섭동 투영, 울타리 구조, 희소 점군 및 배경 모호성으로 인한 Unknown 사례. 논문 Fig. 4.',
+           owner='가상 연구자 A',status='changes',asset='fig4_cases.png',updates=[
+              (10,15,10,'객체별 판정 사례 업로드','(a)에서 Pass와 Fail의 대비 확인'),
+              (14,11,40,'울타리와 Unknown 사례 검토','(b),(d),(e)의 희소·모호 사례, (c)의 천공 구조'),
+              (16,10,20,'수정 요청: 사례 설명 정교화','울타리의 혼합 깊이색이 반드시 오정렬을 뜻하지 않는다는 설명 보강 예정')]),
+      dict(kind='fig',title='Fig. 5 · KITTI/WOD/DiTer++/Pohang 투영 예시',
+           desc='4개 평가 환경의 카메라 이미지와 깊이 색상 LiDAR 투영 비교. 논문 Fig. 5.',
+           owner='가상 연구자 B',status='review',asset='fig5_datasets.png',updates=[
+              (11,9,50,'4개 데이터셋 투영 예시 등록','카메라 원본과 투영 이미지의 2행 구성'),
+              (15,15,25,'점군 밀도 차이 설명 반영','KITTI 이외 데이터셋은 가시화를 위해 점 크기를 확대했다는 캡션 점검')]),
+      dict(kind='fig',title='Fig. 6 · 4개 환경 혼동행렬 비교',
+           desc='KITTI, WOD, DiTer++, Pohang에서 LCCNet*, Cal/NoCal, ST-Calib, Ours의 PP/PF/FP/FF. 논문 Fig. 6.',
+           owner='가상 연구자 C',status='in_progress',asset='fig6_confusion.png',updates=[
+              (12,10,5,'혼동행렬 비교 그림 등록','4개 환경의 수치 분포 및 색상 확인'),
+              (16,12,15,'축 레이블 가독성 검토','PP=Pass/Pass, PF=Pass/Fail, FP=Fail/Pass, FF=Fail/Fail 설명 준비')]),
+      dict(kind='table',title='Table I · 객체 수준 VLM 분류 결과',
+           desc='Pass/Fail/Unknown의 정밀도와 재현율(%) 비교. 원본 Table I 수치 사용.',
+           owner='가상 연구자 C',status='approved',values=[vlm_v1,vlm_v2,vlm_v3],updates=[
+              (9,13,0,'Pass/Fail 분류 결과 1차 등록','2개 클래스 수치 입력'),
+              (12,10,0,'Unknown 분류 결과 추가','Unknown 정밀도 85.50, 재현율 96.02 입력'),
+              (15,16,0,'원고 Table I 대조 및 승인','수치 확인 후 승인 처리')]),
+      dict(kind='table',title='Table II · 평가 데이터셋 상세 구성',
+           desc='데이터셋별 환경, 객체, Pass/Fail 프레임 개수, 난이도. 원본 Table II.',
+           owner='가상 연구자 A',status='review',values=ds_versions,updates=[
+              (10,16,0,'도심 데이터셋 정리','KITTI 및 WOD 프레임 개수 입력'),
+              (13,13,15,'DiTer++ 구성 추가','잔디 환경 결과와 난이도 ★★ 입력'),
+              (16,11,10,'Pohang 추가 및 전체 검토 요청','해상 환경과 객체 빈도 난이도 표기 확인 요청')]),
+      dict(kind='table',title='Table III · 환경별 정량 성능 비교',
+           desc='4개 평가 환경 × 4개 방법의 Accuracy, Pass/Fail 정밀도·재현율 전체 수치. 원본 Table III.',
+           owner='가상 연구자 B',status='in_progress',values=results_versions,updates=[
+              (9,16,0,'KITTI 결과 초안 입력','KITTI 4개 비교 방법의 5개 성능지표 입력'),
+              (11,16,30,'WOD 결과 추가','WOD에서는 ST-Calib 86.67%, Ours 76.00% Accuracy 확인'),
+              (14,14,0,'DiTer++ 결과 추가','Ours Accuracy 74.79% 확인'),
+              (16,15,20,'Pohang 결과 추가: 교차 검토 진행','Pohang Ours Accuracy 82.67%; 원본 Table III와 대조')])
+    ]
     for entry in entries:
-        fileinfo=None
+        aid=uid();binary=None;fileinfo=None
         if entry.get('asset'):
             asset_path=ROOT/'seed_assets'/entry['asset']
-            if asset_path.is_file():
-                key=uid()+'.png'; binary=asset_path.read_bytes()
-                c.execute('INSERT INTO attachments(file,project_id,artifact_id,name,mime,content,created) VALUES (?,?,?,?,?,?,?)',
-                          (key,'demo','',entry['asset'],'image/png',binary,ts(9,9)))
-                fileinfo={'file':key,'name':entry['asset'],'mime':'image/png'}
-                assets[entry['label']]=key
-        aid=uid(); revisions=[]
-        for i,(day,hour,note,content) in enumerate(entry['updates'],start=1):
-            if entry['kind']=='table':
-                body=entry['values'][i-1]
-            else:
-                body={'notes':content}
-                if fileinfo:body['file']=fileinfo
-            status=entry['status'] if i==len(entry['updates']) else ('draft' if i==1 else 'in_progress')
+            if not asset_path.is_file():raise FileNotFoundError(asset_path)
+            key=uid()+'.png';binary=asset_path.read_bytes()
+            c.execute('INSERT INTO attachments(file,project_id,artifact_id,name,mime,content,created) VALUES (?,?,?,?,?,?,?)',
+                      (key,'demo',aid,entry['asset'],'image/png',binary,ts(9,9)))
+            fileinfo={'file':key,'name':entry['asset'],'mime':'image/png'}
+        revisions=[]
+        for i,(day,hour,minute,note,notes) in enumerate(entry['updates'],start=1):
+            body=(entry['values'][i-1] if entry['kind']=='table' else {'notes':notes,'file':fileinfo})
+            if entry['kind']=='fig' and not fileinfo:body={'notes':notes}
+            status=(entry['status'] if i==len(entry['updates']) else ('draft' if i==1 else 'in_progress'))
             snap={'title':entry['title'],'description':entry['desc'],'owner':entry['owner'],'body':body,'status':status}
-            revisions.append((i,day,hour,note,snap))
-        created=ts(revisions[0][1],revisions[0][2]); updated=ts(revisions[-1][1],revisions[-1][2])
+            revisions.append((i,day,hour,minute,note,snap))
+        first,last=revisions[0],revisions[-1]
         c.execute('INSERT INTO artifacts VALUES (?,?,?,?,?,?,?,?,?,?,?)',
                   (aid,'demo',entry['kind'],entry['title'],entry['desc'],entry['owner'],entry['status'],
-                   json.dumps(revisions[-1][-1]['body'],ensure_ascii=False),len(revisions),created,updated))
-        for (i,day,hour,note,snap) in revisions:
-            when=ts(day,hour)
+                   json.dumps(last[-1]['body'],ensure_ascii=False),len(revisions),ts(*first[1:4]),ts(*last[1:4])))
+        for (version,day,hour,minute,note,snap) in revisions:
+            timestamp=ts(day,hour,minute)
             c.execute('INSERT INTO revisions(artifact_id,version,author,note,snapshot,created) VALUES (?,?,?,?,?,?)',
-                      (aid,i,entry['owner'],note,json.dumps(snap,ensure_ascii=False),when))
+                      (aid,version,entry['owner'],note,json.dumps(snap,ensure_ascii=False),timestamp))
             c.execute('INSERT INTO activities(project_id,who,message,created) VALUES (?,?,?,?)',
-                      ('demo',entry['owner'],f"{entry['label']} v{i} · {note}",when))
-        if fileinfo:
-            c.execute('UPDATE attachments SET artifact_id=? WHERE file=?',(aid,fileinfo['file']))
-        if entry['label']=='그림 1':
+                      ('demo',entry['owner'],f'{entry["title"]} v{version} · {note}',timestamp))
+    comment_map={
+       'Fig. 1':[('가상 연구자 C','범례가 그래프를 가리지 않는지 확인하면 좋겠습니다.',16,13)],
+       'Fig. 4':[('가상 연구자 B','울타리에서 내부/외부 깊이 색상이 혼합되는 이유를 캡션에서 분명하게 써 주세요.',16,14)],
+       'Table II':[('가상 연구자 C','DiTer++의 프레임 수가 95/143인지 본문 Table II를 재확인했습니다.',16,13)],
+       'Table III':[('가상 연구자 A','KITTI에서는 Cal/NoCal이 99.25%로 가장 높습니다. Ours의 장점은 미학습 환경 성능이라는 점을 본문에서 강조해 주세요.',16,16)],
+    }
+    for prefix,comments in comment_map.items():
+        aid=c.execute('SELECT id FROM artifacts WHERE project_id=? AND title LIKE ?',('demo',prefix+'%')).fetchone()['id']
+        for author,content,day,hour in comments:
             c.execute('INSERT INTO comments(artifact_id,author,content,created) VALUES (?,?,?,?)',
-                (aid,'연구자 B','Unknown 객체를 제외하는 이유를 Fig. 설명에도 한 문장으로 넣어주세요.',ts(15,14)))
-        if entry['label']=='표 1':
-            c.execute('INSERT INTO comments(artifact_id,author,content,created) VALUES (?,?,?,?)',
-                (aid,'연구자 A','Pohang 값의 원본 로그를 대조한 뒤 검토 요청으로 변경합시다.',ts(16,10)))
-    for title,assignee,day,done,priority in [
-        ('그림 1 파이프라인 검토 의견 반영','연구자 A',18,0,'high'),
-        ('표 1 수치 재현 로그 교차 검증','연구자 B',19,0,'high'),
-        ('그림 2 범례 · 축 간격 보완','연구자 C',20,0,'normal'),
-        ('표 2 집계 방식 비교 수치 확정','연구자 A',14,1,'normal'),
-        ('그림 3 판단 불가 사례 보강','연구자 B',21,0,'normal'),
-        ('표 3 짝수 채널 조건 정리','연구자 C',17,1,'normal')]:
+                      (aid,author,content,ts(day,hour)))
+    tasks=[
+       ('Fig. 1 레이더 범례 및 축 설명 최종 검토','가상 연구자 A',18,0,'high'),
+       ('Fig. 4 울타리의 배경 관통 사례 캡션 수정','가상 연구자 A',19,0,'high'),
+       ('Fig. 5 LiDAR 점 크기 확대 조건 주석 점검','가상 연구자 B',19,0,'normal'),
+       ('Fig. 6 PP/PF/FP/FF 정의 캡션 추가','가상 연구자 C',20,0,'normal'),
+       ('Table III KITTI 결과 원본 로그 대조','가상 연구자 B',20,0,'high'),
+       ('Table III Pohang 82.67% 수치 교차 검증','가상 연구자 B',21,0,'high'),
+       ('Table II 평가 프레임 및 객체 유형 정리','가상 연구자 A',17,0,'normal'),
+       ('Table I Unknown 재현율 검토','가상 연구자 C',14,1,'normal'),
+       ('Fig. 2 전체 파이프라인 승인','가상 연구자 B',15,1,'normal'),
+       ('VLM 판정 기준 Pass/Fail/Unknown 설명 검토','가상 연구자 C',13,1,'normal'),
+    ]
+    for title,assignee,day,done,priority in tasks:
         c.execute('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)',
-                  (uid(),'demo',None,title,assignee,f'2026-11-{day:02d}',priority,done,ts(10,10)))
+                  (uid(),'demo',None,title,assignee,f'2026-11-{day:02d}',priority,done,ts(10,9)))
+    activity(c,'demo','시스템','논문 자료는 실제 PDF에 기반합니다. 담당자·날짜·댓글·수정 이력은 수업 시연을 위한 가상 데이터입니다.')
+
+
+PUBLIC_DEMO_IDS=('demo','demo-visual','demo-mars')
+
+def seed_completed_demo(c,spec):
+    """Build a paper-grounded, completed public example. Historical activity is fictional."""
+    pid=spec['id'];dates=spec['dates']
+    def stamp(i,h=10,m=0):return dates[i]+f'T{h:02d}:{m:02d}:00+09:00'
+    c.execute('INSERT INTO projects(id,title,subtitle,deadline,created,is_demo) VALUES (?,?,?,?,?,1)',
+              (pid,spec['title'],spec['subtitle']+' · '+spec['marker'],spec['deadline'],stamp(0,9)))
+    for index,entry in enumerate(spec['entries']):
+        aid=uid();kind=entry['kind'];author=entry['owner'];versions=[]
+        if kind=='fig':
+            asset_path=ROOT/'seed_assets'/entry['image']
+            if not asset_path.is_file():raise FileNotFoundError(asset_path)
+            key=uid()+'.png';fileinfo={'file':key,'name':entry['image'],'mime':'image/png'}
+            c.execute('INSERT INTO attachments(file,project_id,artifact_id,name,mime,content,created) VALUES (?,?,?,?,?,?,?)',
+                      (key,pid,aid,entry['image'],'image/png',asset_path.read_bytes(),stamp(0,9)))
+        for i in range(3):
+            if kind=='fig':
+                body={'notes':entry['notes'][i]+' · 실제 논문 그림을 참고한 시연용 수정 기록','file':fileinfo}
+            else:
+                allrows=entry['rows'];rowcount=[max(1,(len(allrows)+2)//3),max(1,(len(allrows)*2+2)//3),len(allrows)][i]
+                body={'columns':entry['columns'],'rows':allrows[:rowcount],
+                      'note':entry['notes'][i]+' · 원문 수치는 그대로 유지'}
+            status=['draft','review','approved'][i]
+            snap={'title':entry['title'],'description':entry['desc'],
+                  'owner':author,'body':body,'status':status}
+            versions.append((snap,stamp(i,10+index%4,(index*7)%60),entry['history'][i]))
+        first,last=versions[0],versions[-1]
+        c.execute('INSERT INTO artifacts VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                  (aid,pid,kind,entry['title'],entry['desc'],author,'approved',
+                   json.dumps(last[0]['body'],ensure_ascii=False),3,first[1],last[1]))
+        for n,(snap,when,note) in enumerate(versions,1):
+            c.execute('INSERT INTO revisions(artifact_id,version,author,note,snapshot,created) VALUES (?,?,?,?,?,?)',
+                      (aid,n,author,note+' · 가상 작업 이력',json.dumps(snap,ensure_ascii=False),when))
+            c.execute('INSERT INTO activities(project_id,who,message,created) VALUES (?,?,?,?)',
+                      (pid,author,f'{entry["title"]} · v{n}: {note} (가상 작업)',when))
+        c.execute('INSERT INTO comments(artifact_id,author,content,created) VALUES (?,?,?,?)',
+                  (aid,'가상 검토자',entry['comment']+' (수업 시연용 가상 의견)',stamp(1,15,index%60)))
+    for ix,task in enumerate(spec['tasks']):
+        c.execute('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)',
+                  (uid(),pid,None,task, spec['authors'][ix%3],dates[2], 'normal',1,stamp(0,9+ix%3)))
+        c.execute('INSERT INTO activities(project_id,who,message,created) VALUES (?,?,?,?)',
+                  (pid,spec['authors'][ix%3],f'완료한 작업: {task} (가상 활동 기록)',stamp(2,17,ix%60)))
     c.execute('INSERT INTO activities(project_id,who,message,created) VALUES (?,?,?,?)',
-              ('demo','시스템','이 워크스페이스의 멤버·수정 내역은 제출용 가상 예시입니다.',ts(9,9)))
+              (pid,'시스템','논문 최종 승인 및 프로젝트 완료 · 실제 이미지/수치 기반, 시연용 과정 기록',stamp(2,19)))
 
 def initdb():
     with db() as c:
         setup_schema(c)
+        old_demo=c.execute("SELECT subtitle FROM projects WHERE id='demo'").fetchone()
+        if old_demo and DEMO_MARKER not in (old_demo['subtitle'] or ''):
+            # Updating the demo only, while preserving user-created projects and their
+            # historical attachments (clones may still point to shared attachment keys).
+            old_ids=[r['id'] for r in c.execute("SELECT id FROM artifacts WHERE project_id='demo'").fetchall()]
+            for aid in old_ids:
+                c.execute('DELETE FROM revisions WHERE artifact_id=?',(aid,))
+                c.execute('DELETE FROM comments WHERE artifact_id=?',(aid,))
+                c.execute('DELETE FROM artifacts WHERE id=?',(aid,))
+            c.execute("DELETE FROM tasks WHERE project_id='demo'")
+            c.execute("DELETE FROM activities WHERE project_id='demo'")
+            c.execute("DELETE FROM projects WHERE id='demo'")
         if not c.execute("SELECT 1 FROM projects WHERE id='demo'").fetchone():
             seed_demo(c)
+        for spec in json.loads((ROOT/'seed_assets'/'completed_demo_specs.json').read_text(encoding='utf8')):
+            existing=c.execute('SELECT subtitle FROM projects WHERE id=?',(spec['id'],)).fetchone()
+            if existing and spec['marker'] not in (existing['subtitle'] or ''):
+                # Seed migration only; never modify unrelated user-owned projects.
+                old_ids=[r['id'] for r in c.execute('SELECT id FROM artifacts WHERE project_id=?',(spec['id'],)).fetchall()]
+                for aid in old_ids:
+                    c.execute('DELETE FROM revisions WHERE artifact_id=?',(aid,))
+                    c.execute('DELETE FROM comments WHERE artifact_id=?',(aid,))
+                    c.execute('DELETE FROM artifacts WHERE id=?',(aid,))
+                c.execute('DELETE FROM tasks WHERE project_id=?',(spec['id'],))
+                c.execute('DELETE FROM activities WHERE project_id=?',(spec['id'],))
+                c.execute('DELETE FROM projects WHERE id=?',(spec['id'],))
+            if not c.execute('SELECT 1 FROM projects WHERE id=?',(spec['id'],)).fetchone():
+                seed_completed_demo(c,spec)
 
-def clone_demo(c,title):
+def clone_demo(c,title,source_pid='demo'):
     pid=uid(); token=tok(); created=now()
-    original=c.execute("SELECT * FROM projects WHERE id='demo'").fetchone()
+    original=c.execute('SELECT * FROM projects WHERE id=?',(source_pid,)).fetchone()
     c.execute('INSERT INTO projects(id,title,subtitle,deadline,created,is_demo) VALUES (?,?,?,?,?,0)',
               (pid,title,original['subtitle'].replace('시연용 데이터 ·','연습용 복제 ·'),original['deadline'],created))
     c.execute('INSERT INTO tokens(hash,project_id,role,created) VALUES (?,?,?,?)',
               (sha(token),pid,'owner',created))
-    for art in c.execute("SELECT * FROM artifacts WHERE project_id='demo'").fetchall():
+    for art in c.execute('SELECT * FROM artifacts WHERE project_id=?',(source_pid,)).fetchall():
         new_id=uid()
         c.execute('INSERT INTO artifacts VALUES (?,?,?,?,?,?,?,?,?,?,?)',
                   (new_id,pid,art['kind'],art['title'],art['description'],art['owner'],art['status'],art['body'],art['current_version'],art['created'],art['updated']))
@@ -201,10 +350,10 @@ def clone_demo(c,title):
             # Identical immutable asset keys are shared across clones for restored historical versions.
             # DB access checks are performed against the project artifact, not the asset key alone.
             pass
-    for task in c.execute("SELECT * FROM tasks WHERE project_id='demo'").fetchall():
+    for task in c.execute('SELECT * FROM tasks WHERE project_id=?',(source_pid,)).fetchall():
         c.execute('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)',
                   (uid(),pid,None,task['title'],task['assignee'],task['due'],task['priority'],task['done'],task['created']))
-    for act in c.execute("SELECT * FROM activities WHERE project_id='demo'").fetchall():
+    for act in c.execute('SELECT * FROM activities WHERE project_id=?',(source_pid,)).fetchall():
         c.execute('INSERT INTO activities(project_id,who,message,created) VALUES (?,?,?,?)',
                   (pid,act['who'],act['message'],act['created']))
     activity(c,pid,'시스템','데모를 복제했습니다. 이제 버전 저장과 이전 버전 복원을 시험할 수 있습니다.')
@@ -264,11 +413,17 @@ class Handler(BaseHTTPRequestHandler):
             return self.static(ROOT/'static'/'index.html','text/html; charset=utf-8')
         if method=='GET' and path in ('/app.js','/style.css'):
             return self.static(ROOT/'static'/path.lstrip('/'), 'application/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
-        if path=='/api/health' and method=='GET':return self.send(200,{'ok':True,'version':'2.0'})
-        if path=='/api/projects/clone-demo' and method=='POST':
-            d=self.data();title=str(d.get('title','OLIVE — 나의 편집 체험')).strip()[:100] or 'OLIVE — 나의 편집 체험'
+        if path=='/api/health' and method=='GET':return self.send(200,{'ok':True,'version':'3.4-three-papers'})
+        if path=='/api/public-projects' and method=='GET':
             with db() as c:
-                result=clone_demo(c,title)
+                public=[row(r) for r in c.execute("SELECT id,title,subtitle,deadline FROM projects WHERE is_demo=1 ORDER BY CASE id WHEN 'demo' THEN 0 WHEN 'demo-visual' THEN 1 ELSE 2 END").fetchall()]
+            return self.send(200,public)
+        if path=='/api/projects/clone-demo' and method=='POST':
+            d=self.data();source=str(d.get('source_id','demo'))
+            if source not in PUBLIC_DEMO_IDS:return self.err(400,'지원하지 않는 예시 프로젝트입니다.')
+            title=str(d.get('title','논문 편집 체험')).strip()[:100] or '논문 편집 체험'
+            with db() as c:
+                result=clone_demo(c,title,source)
             return self.send(201,result)
         if path=='/api/projects' and method=='POST':
             d=self.data(); title=str(d.get('title','')).strip()[:100]
@@ -287,11 +442,11 @@ class Handler(BaseHTTPRequestHandler):
             owner=(tail=='invites' and write) or (tail=='settings' and write)
             p,role=self.auth(c,pid,write,owner)
             if not role:return
-            user=self.headers.get('X-Paperroom-Name','익명').strip()[:40] or '익명'
+            user=unquote(self.headers.get('X-Paperroom-Name','%EC%9D%B5%EB%AA%85')).strip()[:40] or '익명'
             if tail=='' and method=='GET':
                 arts=[jsonbody(r) for r in c.execute('SELECT * FROM artifacts WHERE project_id=? ORDER BY updated DESC',(pid,))]
                 tasks=[row(r) for r in c.execute('SELECT * FROM tasks WHERE project_id=? ORDER BY done, due',(pid,))]
-                acts=[row(r) for r in c.execute('SELECT * FROM activities WHERE project_id=? ORDER BY id DESC LIMIT 40',(pid,))]
+                acts=[row(r) for r in c.execute('SELECT * FROM activities WHERE project_id=? ORDER BY id DESC LIMIT 250',(pid,))]
                 invites=[row(r) for r in c.execute('SELECT id,email,role,status,created FROM invites WHERE project_id=? ORDER BY id DESC LIMIT 50',(pid,))] if role=='owner' else []
                 return self.send(200,{'project':row(p),'role':role,'artifacts':arts,'tasks':tasks,'activities':acts,'invites':invites})
             if tail=='settings' and method=='PATCH':
