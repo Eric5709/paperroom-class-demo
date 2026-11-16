@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: paperroom-class-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PAPERROOM_DATA_DIR
+        value: /tmp/paperroom
+      - key: DEMO_READONLY
+        value: "1"
